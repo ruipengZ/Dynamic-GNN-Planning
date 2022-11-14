@@ -1,0 +1,78 @@
+env:
+  env_name: simple2arm
+  config_dim: 2
+  workspace_dim: 9
+  arm_file: environment/2dof.urdf
+  arm_mine_base_pos: [0, 0, 0]
+  arm_mine_base_ori: [0, 0, 0.7071, 0.7071]
+  arm_obs_base_pos: [1, 1, 0]
+  arm_obs_base_ori: [0, 0, 0, 1]
+
+  traj_obs_len: 20
+  length: 1
+  RRT_EPS: 0.01
+
+model:
+  embed_size: 32
+  loop: 10
+  window_length: 2
+
+data:
+  training_files_graph: ['testcase/simple2arm/arm2_1000_train_01.pkl',
+                         'testcase/simple2arm/arm2_1000_train_02.pkl',
+                        ]
+  training_files_obs: ['testcase/simple2arm/arm2_env_1000_train_01.npz',
+                       'testcase/simple2arm/arm2_env_1000_train_02.npz',
+                      ]
+  testing_files_graph: ['testcase/simple2arm/arm2_1000_test.pkl']
+  testing_files_obs: ['testcase/simple2arm/arm2_env_1000_test.npz']
+
+
+train:
+  output_model_gnn_path: output/simple2arm/weights_gnn.pt
+  output_model_head_path: output/simple2arm/weights_head.pt
+  epochs: 200
+  lr: 1.0e-3
+
+
+test:
+  saved_model_gnn_path: saved_model/simple2arm/weights_gnn_dagger.pt
+  saved_model_head_path: saved_model/simple2arm/weights_head_dagger.pt
+  backtracking: True
+  backtracking_buffer_size: 5
+  max_num_samples: 1000
+
+
+
+
+
+
+
+#data:
+#  dataset_name: images
+#  path: data/comprehensive_cars/images/*.jpg
+#  classes: []
+#  img_size: 64
+#  fid_file: null
+#  random_crop: False
+#  celebA_center_crop: False
+#  use_tanh_range: False
+#model:
+#  z_dim: 256
+#  z_dim_bg: 128
+#  decoder: simple
+#  discriminator: dc
+#  generator: simple
+#  background_generator: simple
+#  bounding_box_generator: simple
+#  neural_renderer: simple
+#  decoder_kwargs: {}
+#  discriminator_kwargs: {}
+#  generator_kwargs: {}
+#  bounding_box_generator_kwargs: {}
+#  neural_renderer_kwargs: {}
+#  background_generator_kwargs:
+#    hidden_size: 64
+#    n_blocks: 4
+#    downscale_p_by: 12
+#    skips: []
