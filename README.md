@@ -20,4 +20,9 @@ pip install pybullet transforms3d matplotlib
 
 ## Environment
 ![envs](./imgs/envs.png)
-**2arms** is available now! Others is comming soon.
+
+# Testcases
+[**2arms**]
+[GoogleDrive Link](https://drive.google.com/drive/folders/16k7xd_O50l5oFslOXDjoAAWLYGxItFRq?usp=sharing)
+
+Please put /testcase into the root directory of this repo.
