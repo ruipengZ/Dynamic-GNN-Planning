@@ -3,17 +3,17 @@ import numpy as np
 import pickle
 import torch
 
-# def make_gif(gifs, path, duration=50, loop=0):
-#     a_frames = []
-#     for im_frame in gifs:
-#         a_frames.append(np.asarray(im_frame))
-#     a = np.stack(a_frames)
-#
-#     ims = [Image.fromarray(a_frame) for a_frame in a]
-#     ims[0].save(path, save_all=True, append_images=ims[1:], loop=loop, duration=duration)
-#     return
-
 def make_gif(gifs, path, duration=50, loop=0):
+    a_frames = []
+    for im_frame in gifs:
+        a_frames.append(np.asarray(im_frame))
+    a = np.stack(a_frames)
+
+    ims = [Image.fromarray(a_frame) for a_frame in a]
+    ims[0].save(path, save_all=True, append_images=ims[1:], loop=loop, duration=duration)
+    return
+
+def make_png(gifs, path, duration=50, loop=0):
     a_frames = []
     for im_frame in gifs:
         a_frames.append(np.asarray(im_frame))

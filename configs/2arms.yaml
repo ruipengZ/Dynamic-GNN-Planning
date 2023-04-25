@@ -8,7 +8,8 @@ env:
   arm_obs_base_pos: [1, 1, 0]
   arm_obs_base_ori: [0, 0, 0, 1]
 
-  traj_obs_len: 20
+  traj_obs_timestep: 40
+  unit_timestep: 20
   length: 1
   RRT_EPS: 0.01
 

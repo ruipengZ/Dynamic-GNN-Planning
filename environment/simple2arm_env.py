@@ -27,9 +27,9 @@ class Env:
 
         self.create_env()
         self.episode_i = 0
-        self.traj_obs_len = cfg['env']['traj_obs_len']
+        self.traj_obs_timestep = cfg['env']['traj_obs_timestep']
         self.length = cfg['env']['length']
-        self.speed = self.length/(self.traj_obs_len-1)
+        self.speed = self.length/(self.traj_obs_timestep-1)
         self.RRT_EPS = cfg['env']['RRT_EPS']
         self.collision_check_count = 0
         self.end_effector_index = 2
