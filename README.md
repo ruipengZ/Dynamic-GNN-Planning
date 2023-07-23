@@ -23,8 +23,12 @@ pip install pybullet transforms3d matplotlib
 
 ## Testcases
 ### Available Testcases
+ Please put /testcase into the root directory of this repo.
 
-[**2arms**](https://drive.google.com/drive/folders/16k7xd_O50l5oFslOXDjoAAWLYGxItFRq?usp=sharing) Please put /testcase into the root directory of this repo.
+[**2arms**](https://drive.google.com/drive/folders/1AKG8ipsEqrVz7lqtSz0r8p5cnYEIKSCh?usp=sharing)
+[**3arms**](https://drive.google.com/drive/folders/1-dMEbgdeoxHapOlHOy3eMbdQ86d19NIO?usp=sharing)
+[**kuka**](https://drive.google.com/drive/folders/1lLwAkc4KTZDHEbYLBCdeVaDsA86gbM3I?usp=sharing)
+[**3kuka**](https://drive.google.com/drive/folders/1QrcxibkCmBcwxs9IC6tyDeZT6gFQxqpq?usp=sharing)
 
 ### Generate testcases
 ```bash
