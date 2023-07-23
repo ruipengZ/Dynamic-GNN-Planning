@@ -1,0 +1,49 @@
+env:
+  env_name: simple_3arm
+  config_dim: 2
+  workspace_dim: 18
+  arm_file: environment/2dof.urdf
+  arm_mine_base_pos: [0, 0, 0]
+  arm_mine_base_ori: [0, 0, 0.7071, 0.7071]
+
+  arm_obs_1_base_pos: [ 1, 1, 0 ]
+  arm_obs_1_base_ori: [ 0, 0, 0, 1 ]
+  arm_obs_2_base_pos: [ 1, 0.5, 0 ]
+  arm_obs_2_base_ori: [ 0, 0, 0, 1 ]
+  traj_obs_timestep: 40
+  unit_timestep: 20
+  length: 1
+  RRT_EPS: 0.01
+  CC_EPS: 0.5
+
+model:
+  embed_size: 32
+  loop: 10
+  window_length: 2
+
+data:
+  training_files_graph: ['testcase/simple3arm/arm3_1000_train_01.pkl',
+                         'testcase/simple3arm/arm3_1000_train_02.pkl',
+                        ]
+  training_files_obs: ['testcase/simple3arm/arm3_env_1000_train_01.npz',
+                       'testcase/simple3arm/arm3_env_1000_train_02.npz',
+                      ]
+  testing_files_graph: ['testcase/simple3arm/arm3_1000_test.pkl']
+  testing_files_obs: ['testcase/simple3arm/arm3_env_1000_test.npz']
+
+
+train:
+  output_model_gnn_path: output/simple3arm/weights_gnn.pt
+  output_model_head_path: output/simple3arm/weights_head.pt
+  epochs: 200
+  lr: 1.0e-3
+
+
+test:
+  saved_model_gnn_path: output/simple3arm/weights_gnn.pt
+  saved_model_head_path: output/simple3arm/weights_head.pt
+  backtracking: False
+  backtracking_buffer_size: 5
+  max_num_samples: 1000
+
+

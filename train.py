@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import os
 
 import torch
 import numpy as np
@@ -35,12 +36,17 @@ class Trainer():
 
         self.model_gnn_path = cfg['train']['output_model_gnn_path']
         self.model_head_path = cfg['train']['output_model_head_path']
+        if not os.path.exists(os.path.dirname(self.model_gnn_path)):
+            os.makedirs(os.path.dirname(self.model_gnn_path))
+        if not os.path.exists(os.path.dirname(self.model_head_path)):
+            os.makedirs(os.path.dirname(self.model_head_path))
+
         self.epochs = cfg['train']['epochs']
         self.lr = cfg['train']['lr']
 
 
         self.model_gnn = GNNet(config_size=self.dof, embed_size=self.embed_size, obs_size=self.obs_size, use_obstacles=True).to(device)
-        self.model_head = PolicyHead(embed_size=self.embed_size).to(device)
+        self.model_head = PolicyHead(embed_size=self.embed_size, obs_size=self.obs_size).to(device)
         self.te_gnn = TemporalEncoder(embed_size=self.embed_size).to(device)
         self.te_head = TemporalEncoder(embed_size=self.obs_size).to(device)
 
@@ -66,7 +72,16 @@ class Trainer():
             for index in pbar:
                 self.env.init_new_problem(index=index, setting_dict=obs_setting)
 
-                points, edge_index, _, _, _, path_time, feasible, _, _ = graphs[index]
+                points = graphs[index][0]
+                edge_index = graphs[index][1]
+                path_time = graphs[index][-4]
+                feasible = graphs[index][-3]
+
+                if len(graphs[index]) == 11:
+                    halfExtents_list = graphs[index][2]
+                    basePosition_list = graphs[index][3]
+                    for halfExtents, basePosition in zip(halfExtents_list, basePosition_list):
+                        self.env.create_voxel(halfExtents, basePosition)
 
                 if not feasible:
                     continue

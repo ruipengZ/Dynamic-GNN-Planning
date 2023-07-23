@@ -1,0 +1,59 @@
+env:
+  env_name: kuka_3arm
+  config_dim: 7
+  workspace_dim: 42
+  arm_file: environment/kuka_iiwa/model_7dof.urdf
+  arm_mine_base_pos: [0, 0, 0]
+  arm_mine_base_ori: [0, 0, 0, -1]
+  arm_obs_1_base_pos: [0.5, 0, 0]
+  arm_obs_1_base_ori: [0, 0, 0, 1]
+  arm_obs_2_base_pos: [0, 0.5, 0]
+  arm_obs_2_base_ori: [0, 0, 0, 1]
+  traj_obs_timestep: 40
+  unit_timestep: 20
+  length: 1
+  RRT_EPS: 0.01
+  CC_EPS: 0.5
+
+model:
+  embed_size: 32
+  loop: 10
+  window_length: 2
+
+data:
+  training_files_graph: [
+    'testcase/3kuka/arm3_1000_train_01.pkl',
+    'testcase/3kuka/arm3_1000_train_02.pkl',
+    'testcase/3kuka/arm3_1000_train_03.pkl',
+                        ]
+
+  training_files_obs: [
+    'testcase/3kuka/arm3_env_1000_train_01.npz',
+    'testcase/3kuka/arm3_env_1000_train_02.npz',
+    'testcase/3kuka/arm3_env_1000_train_03.npz',
+                      ]
+  testing_files_graph: [
+    'testcase/3kuka/arm3_1000_test_01.pkl',
+    'testcase/3kuka/arm3_1000_test_02.pkl',
+
+  ]
+  testing_files_obs: [
+    'testcase/3kuka/arm3_env_1000_test_01.npz',
+    'testcase/3kuka/arm3_env_1000_test_02.npz',
+  ]
+
+
+train:
+  output_model_gnn_path: output/3kuka/weights_gnn.pt
+  output_model_head_path: output/3kuka/weights_head.pt
+  epochs: 200
+  lr: 1.0e-3
+
+
+test:
+  saved_model_gnn_path: output/3kuka/weights_gnn.pt
+  saved_model_head_path: output/3kuka/weights_head.pt
+  backtracking: False
+  backtracking_buffer_size: 5
+  max_num_samples: 1000
+

@@ -1,10 +1,8 @@
 import pybullet as p
 import numpy as np
-import pybullet_data
-
 
 class Env:
-    def __init__(self, cfg, GUI=False):
+    def __init__(self,cfg, GUI=False):
         try:
             p.disconnect()
         except:
@@ -12,7 +10,7 @@ class Env:
         if GUI:
             p.connect(p.GUI, options='--background_color_red=0.97 --background_color_green=0.97 --background_color_blue=1')
             p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-            p.resetDebugVisualizerCamera(2., 50, -20, (0.5, 0.5, 0.5))
+            p.resetDebugVisualizerCamera(2., 25, -20, (0.5, 0.5, 0.5))
         else:
             p.connect(p.DIRECT)
         p.setGravity(0, 0, -10)
@@ -27,13 +25,11 @@ class Env:
 
         self.create_env()
         self.episode_i = 0
-        self.traj_obs_timestep = cfg['env']['traj_obs_timestep']
-        self.length = cfg['env']['length']
-        self.speed = self.length/(self.traj_obs_timestep-1)
+        self.speed = 1/(cfg['env']['unit_timestep']-1)
+        self.CC_EPS = cfg['env']['CC_EPS']
         self.RRT_EPS = cfg['env']['RRT_EPS']
         self.collision_check_count = 0
-        self.end_effector_index = 2
-
+        self.end_effector_index = 6
 
     def init_new_problem(self, file=None, index=None, setting_dict=None):
         self.create_env()
@@ -79,40 +75,59 @@ class Env:
         self.episode_i = (self.episode_i) % len(self.order)
         self.collision_check_count = 0
 
-
     def create_env(self):
         p.resetSimulation()
         stick1 = p.loadURDF(self.arm_file_mine, self.arm_mine_base_pos, self.arm_mine_base_ori, useFixedBase=True)
         stick2 = p.loadURDF(self.arm_file_obs, self.arm_obs_base_pos, self.arm_obs_base_ori, useFixedBase=True)
         self.stick1, self.stick2 = stick1, stick2
 
+    def create_voxel(self, halfExtents, basePosition):
+        groundColId = p.createCollisionShape(p.GEOM_BOX, halfExtents=halfExtents)
+        groundVisID = p.createVisualShape(shapeType=p.GEOM_BOX,
+                                          rgbaColor=np.random.uniform(0, 1, size=3).tolist() + [0.8],
+                                          specularColor=[0.4, .4, 0],
+                                          halfExtents=halfExtents)
+        groundId = p.createMultiBody(baseMass=0,
+                                     baseCollisionShapeIndex=groundColId,
+                                     baseVisualShapeIndex=groundVisID,
+                                     basePosition=basePosition)
+        return groundId
 
     def resetBaseOrientation(self, base, orientation):
         p.resetBasePositionAndOrientation(self.stick2, base, orientation)
 
     def uniform_sample_mine(self, n=1):
-        '''
-        Uniformlly sample in the configuration space
-        '''
-        sample = np.random.uniform([0.] * 2, [np.pi] * 2, size=(n, 2))
+        sample = np.random.uniform([0.] * self.config_dim, [np.pi] * self.config_dim, size=(n, self.config_dim))
         if n == 1:
             return sample.reshape(-1)
         else:
             return sample
 
+    def uniform_sample_mine_wo_collision(self, n=1):
+        samples = []
+        while True:
+            if len(samples) == n:
+                break
+            sample = np.random.uniform([0.] * self.config_dim, [np.pi] * self.config_dim)
+            self.set_config_mine(sample)
+            if self.check_collision():
+                samples.append(sample)
+        return np.array(samples)
+
+
     def uniform_sample_obs(self, n=1):
         '''
         Uniformlly sample in the configuration space
         '''
-        sample = np.random.uniform([0.] * 2, [np.pi] * 2, size=(n, 2))
+        sample = np.random.uniform([0.] * self.config_dim, [np.pi] * self.config_dim, size=(n, self.config_dim))
         if n == 1:
             return sample.reshape(-1)
         else:
             return sample
 
     def set_config(self, config):
-        self.set_config_mine(config[:2])
-        self.set_config_obs(config[2:])
+        self.set_config_mine(config[:self.config_dim])
+        self.set_config_obs(config[self.config_dim:])
 
     def set_config_arm(self, config, arm_id):
         for i in range(len(config)):
@@ -133,35 +148,51 @@ class Env:
         else:
             return False
 
+
+    def check_collision_body(self, body_id):
+        p.performCollisionDetection()
+        if len(p.getContactPoints(body_id)) == 0:
+            return True
+        else:
+            return False
+
+
+    def check_traj_collision_body(self, obs_traj, body_id):
+        u_d = self.speed
+        if not self.check_collision_body(body_id):
+            return False
+        for i in range(len(obs_traj) - 1):
+            disp = obs_traj[i + 1] - obs_traj[i]
+            d = np.linalg.norm(disp)
+            K = int(np.ceil(d / u_d))
+            for k in range(1, K + 1):
+                c = obs_traj[i] + k * 1. / K * disp
+                self.set_config_obs(c)
+                if not self.check_collision_body(body_id):
+                    return False
+        return True
+
+
+
     def get_workspace_points(self, obsconfig, relative=False):
         points = []
         self.set_config_obs(obsconfig)
-        for effector in range(3):
+        for effector in range(self.config_dim):
             point = p.getLinkState(self.stick2, effector)[0]
             point = (point[0], point[1], point[2])
             points.append(point)
         return np.array(points).reshape((-1))
 
+
     def get_workspace_points_mine(self, mineconfig, relative=False):
         points = []
         self.set_config_mine(mineconfig)
-        for effector in range(3):
+        for effector in range(self.config_dim):
             point = p.getLinkState(self.stick1, effector)[0]
             point = (point[0], point[1], point[2])
             points.append(point)
         return np.array(points).reshape((-1))
 
-    def create_voxel(self, halfExtents, basePosition):
-        groundColId = p.createCollisionShape(p.GEOM_BOX, halfExtents=halfExtents)
-        groundVisID = p.createVisualShape(shapeType=p.GEOM_BOX,
-                                          rgbaColor=np.random.uniform(0, 1, size=3).tolist() + [0.8],
-                                          specularColor=[0.4, .4, 0],
-                                          halfExtents=halfExtents)
-        groundId = p.createMultiBody(baseMass=0,
-                                     baseCollisionShapeIndex=groundColId,
-                                     baseVisualShapeIndex=groundVisID,
-                                     basePosition=basePosition)
-        return groundId
 
     def _state_fp(self, config):
         self.set_config(config)
@@ -173,18 +204,18 @@ class Env:
 
         disp_mine = new_state - state
 
+        d = np.linalg.norm(disp_mine)
+        K = int(np.ceil(d / self.speed))
+        if d == 0: K=1
+
+        self.collision_check_count += d // self.CC_EPS
         # start
         self.set_config_mine(state)
         self.set_config_obs(self.obs_traj[min(int(cur_time), self.obs_points.shape[0] - 1)])
-
         if not self.check_collision():
             return False
 
         # mine moving
-        d = np.linalg.norm(disp_mine)
-        K = int(np.ceil(d / self.speed))
-
-        if d == 0: K=1
         for k in range(1, K + 1):
             c_mine = state + k * 1. / K * disp_mine
             self.set_config_mine(c_mine)
@@ -209,49 +240,12 @@ class Env:
 
         return np.sqrt(np.sum(diff ** 2, axis=-1))
 
-
     def in_goal_region(self, state):
         '''
         Return whether a state(configuration) is in the goal region
         '''
         return self.distance(state, self.goal_state) < self.RRT_EPS and \
                self._state_fp(state)
-
-
-
-    # def plot(self, path, make_gif=False):
-    #     path = np.array(path)
-    #     self.set_config(path[0])
-    #
-    #     # [p.getClosestPoints(self.ur5, obs, distance=0.09) for obs in self.obs_ids]
-    #
-    #     gifs = []
-    #     current_state_idx = 0
-    #
-    #     while True:
-    #         disp = path[current_state_idx + 1] - path[current_state_idx]
-    #
-    #         d = np.linalg.norm(path[current_state_idx]-path[current_state_idx + 1])
-    #
-    #         K = int(np.ceil(d / 0.01))
-    #         for k in range(0, K):
-    #
-    #             c = path[current_state_idx] + k * 1. / K * disp
-    #             self.set_config(c)
-    #             p.performCollisionDetection()
-    #             if make_gif:
-    #                 gifs.append(p.getCameraImage(width=1080, height=720, lightDirection=[0, 0, -1], shadow=0,
-    #                                          renderer=p.ER_BULLET_HARDWARE_OPENGL)[2])
-    #
-    #         current_state_idx += 1
-    #
-    #         # gifs.append(p.getCameraImage(width=1000, height=800, lightDirection=[1, 1, 1], shadow=1,
-    #         #                              renderer=p.ER_BULLET_HARDWARE_OPENGL)[2])
-    #         if current_state_idx == len(path) - 1:
-    #             self.set_config(path[-1])
-    #             break
-    #
-    #     return gifs
 
     #### For RL training ####
     def init_all_RL_problems(self, all_points, all_edge_index, all_obs_traj):
@@ -281,7 +275,6 @@ class Env:
         # action = self.RL_points[next_node_index]
         return next_node_index
 
-
     def step(self, new_state_index):
         ### action is the transition vector , the inputs are index of points###
 
@@ -306,80 +299,48 @@ class Env:
 
         info = no_collision
 
-
         d = np.linalg.norm(self.RL_points[new_state_index] - self.RL_points[self.RL_current_index])
         K = int(np.ceil(d / self.speed))
 
         if d == 0:
-            K=1
+            K = 1
 
         self.RL_current_time += K
         self.RL_current_index = new_state_index
-
 
         return new_state_index, reward, done, info
 
     def plot(self, path, make_gif=False):
         path = np.array(path)
-
-        p.resetSimulation()
-
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
-        # p.loadURDF("plane.urdf", [0, 0, -1], useFixedBase=True)
-
-        # for halfExtents, basePosition in self.obstacles:
-        #     self.create_voxel(halfExtents, basePosition)
-
-        self.kukaId = p.loadURDF(self.simple_file, [0, 0, 0], [0, 0, 0, 1], useFixedBase=True,
-                                 flags=p.URDF_IGNORE_COLLISION_SHAPES)
-
         self.set_config(path[0])
 
-        target_kukaId = p.loadURDF(self.simple_file, [0, 0, 0], [0, 0, 0, 1], useFixedBase=True,
-                                   flags=p.URDF_IGNORE_COLLISION_SHAPES)
-        self.set_config(path[-1], target_kukaId)
-
-        prev_pos = p.getLinkState(self.kukaId, self.end_effector_index)[0]
-        final_pos = p.getLinkState(target_kukaId, self.end_effector_index)[0]
-
-        p.setGravity(0, 0, -10)
-        p.stepSimulation()
+        # [p.getClosestPoints(self.ur5, obs, distance=0.09) for obs in self.obs_ids]
 
         gifs = []
         current_state_idx = 0
 
         while True:
-            current_state = path[current_state_idx]
             disp = path[current_state_idx + 1] - path[current_state_idx]
 
-            d = self.distance(path[current_state_idx], path[current_state_idx + 1])
+            d = np.linalg.norm(path[current_state_idx]-path[current_state_idx + 1])
 
-            new_arm = p.loadURDF(self.simple_file, [0, 0, 0], [0, 0, 0, 1], useFixedBase=True,
-                                  flags=p.URDF_IGNORE_COLLISION_SHAPES)
-            for data in p.getVisualShapeData(new_arm):
-                color = list(data[-1])
-                color[-1] = 0.5
-                p.changeVisualShape(new_arm, data[1], rgbaColor=color)
-
-            K = int(np.ceil(d / 0.2))
+            K = int(np.ceil(d / self.speed))
             for k in range(0, K):
 
                 c = path[current_state_idx] + k * 1. / K * disp
-                self.set_config(c, new_arm)
-                new_pos = p.getLinkState(new_arm, self.end_effector_index)[0]
-                p.addUserDebugLine(prev_pos, new_pos, [1, 0, 0], 10, 0)
-                prev_pos = new_pos
-                p.loadURDF("sphere2red.urdf", new_pos, globalScaling=0.05, flags=p.URDF_IGNORE_COLLISION_SHAPES)
+                self.set_config(c)
+                p.performCollisionDetection()
                 if make_gif:
                     gifs.append(p.getCameraImage(width=1080, height=720, lightDirection=[0, 0, -1], shadow=0,
-                                                 renderer=p.ER_BULLET_HARDWARE_OPENGL)[2])
+                                             renderer=p.ER_BULLET_HARDWARE_OPENGL)[2])
 
             current_state_idx += 1
+
+            # gifs.append(p.getCameraImage(width=1000, height=800, lightDirection=[1, 1, 1], shadow=1,
+            #                              renderer=p.ER_BULLET_HARDWARE_OPENGL)[2])
             if current_state_idx == len(path) - 1:
-                self.set_config(path[-1], new_arm)
-                p.addUserDebugLine(prev_pos, final_pos, [1, 0, 0], 10, 0)
-                p.loadURDF("sphere2red.urdf", final_pos, globalScaling=0.05, flags=p.URDF_IGNORE_COLLISION_SHAPES)
+                self.set_config(path[-1])
                 break
 
         return gifs
+    

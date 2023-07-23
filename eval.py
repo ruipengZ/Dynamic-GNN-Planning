@@ -43,11 +43,12 @@ class Planner():
 
         #### Load models ####
         self.embed_size = cfg['model']['embed_size']
+        self.obs_size = cfg['model']['obs_size']
         self.loop = cfg['model']['loop']
         self.half_win_len = cfg['model']['window_length']
         self.model_gnn = GNNet(config_size=self.dof, embed_size=self.embed_size, obs_size=self.obs_size,
                                use_obstacles=True).to(device)
-        self.model_head = PolicyHead(embed_size=self.embed_size).to(device)
+        self.model_head = PolicyHead(embed_size=self.embed_size, obs_size=self.obs_size).to(device)
         self.te_gnn = TemporalEncoder(embed_size=self.embed_size).to(device)
         self.te_head = TemporalEncoder(embed_size=self.obs_size).to(device)
 
@@ -378,6 +379,11 @@ class Planner():
             self.env.init_new_problem(index=index, setting_dict=self.obs_setting)
             graph_points = self.graphs[index][0]
             graph_edge_index = self.graphs[index][1]
+            if len(self.graphs[index]) == 11:
+                halfExtents_list = self.graphs[index][2]
+                basePosition_list = self.graphs[index][3]
+                for halfExtents, basePosition in zip(halfExtents_list, basePosition_list):
+                    self.env.create_voxel(halfExtents, basePosition)
 
             t0 = time.time()
             result = self.explore_func(graph_points, graph_edge_index, t_max=t_max, k=k)
@@ -400,6 +406,7 @@ if __name__ == '__main__':
 
     planner = Planner(cfg)
     indexes = range(planner.num_graphs)
+
     result_dict = planner.motion_planning(seed=1234, indexes=indexes, use_tqdm=True, t_max=planner.max_num_samples)
     show_result(model_name=model_name, gt_file=planner.test_graph_file, result_dict=result_dict, index_list=indexes)
     np.savez(f'result/{model_name}_{planner.search_type}.npz', **result_dict)

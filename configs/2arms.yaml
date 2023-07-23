@@ -1,5 +1,5 @@
 env:
-  env_name: simple2arm
+  env_name: simple_2arm
   config_dim: 2
   workspace_dim: 9
   arm_file: environment/2dof.urdf
@@ -7,14 +7,15 @@ env:
   arm_mine_base_ori: [0, 0, 0.7071, 0.7071]
   arm_obs_base_pos: [1, 1, 0]
   arm_obs_base_ori: [0, 0, 0, 1]
-
   traj_obs_timestep: 40
   unit_timestep: 20
   length: 1
   RRT_EPS: 0.01
+  CC_EPS: 0.5
 
 model:
   embed_size: 32
+  obs_size: 9
   loop: 10
   window_length: 2
 
@@ -37,43 +38,8 @@ train:
 
 
 test:
-  saved_model_gnn_path: saved_model/simple2arm/weights_gnn_dagger.pt
-  saved_model_head_path: saved_model/simple2arm/weights_head_dagger.pt
-  backtracking: True
+  saved_model_gnn_path: output/simple2arm/weights_gnn.pt
+  saved_model_head_path: output/simple2arm/weights_head.pt
+  backtracking: False
   backtracking_buffer_size: 5
   max_num_samples: 1000
-
-
-
-
-
-
-
-#data:
-#  dataset_name: images
-#  path: data/comprehensive_cars/images/*.jpg
-#  classes: []
-#  img_size: 64
-#  fid_file: null
-#  random_crop: False
-#  celebA_center_crop: False
-#  use_tanh_range: False
-#model:
-#  z_dim: 256
-#  z_dim_bg: 128
-#  decoder: simple
-#  discriminator: dc
-#  generator: simple
-#  background_generator: simple
-#  bounding_box_generator: simple
-#  neural_renderer: simple
-#  decoder_kwargs: {}
-#  discriminator_kwargs: {}
-#  generator_kwargs: {}
-#  bounding_box_generator_kwargs: {}
-#  neural_renderer_kwargs: {}
-#  background_generator_kwargs:
-#    hidden_size: 64
-#    n_blocks: 4
-#    downscale_p_by: 12
-#    skips: []
